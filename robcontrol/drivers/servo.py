@@ -2,11 +2,8 @@ import time
 import logging
 import caninos_sdk as k9
 
-from robcontrol.config import ServoConfig
-
 
 LOG = logging.getLogger(__name__)
-
 
 class ServoMotor:
     def __init__(self, conf: ServoConfig) -> None:

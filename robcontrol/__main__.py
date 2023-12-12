@@ -5,9 +5,8 @@ import threading
 from robcontrol.libs.logger import setup_logger
 from robcontrol.libs.parser import get_parser
 from robcontrol.drivers.motors import Motors
-from robcontrol.drivers.servo import ServoMotor
+# from robcontrol.drivers.servo import ServoMotor
 from robcontrol.drivers.ultrasound import Ultrasound
-from robcontrol.config import DEFAULT_CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -46,9 +45,9 @@ def take_decision(driver_motor, ultrasound_driver, servo_driver):
 def main():
     """Main function."""
     # Init constructors
-    motors = Motors(DEFAULT_CONF['motor'])
-    servo = ServoMotor(DEFAULT_CONF['servo'])
-    ultrasound = Ultrasound(DEFAULT_CONF['ultrasound'])
+    motors = Motors()
+    # servo = ServoMotor(DEFAULT_CONF['servo'])
+    ultrasound = Ultrasound()
 
     thead = threading.Thread(
         target=ultrasound.get_distance
@@ -60,7 +59,9 @@ def main():
             motors.forward(0.5)
             time.sleep(0.080)
             if ultrasound.distance_cm < 20 and ultrasound.distance_cm > 0:
-                take_decision(motors, ultrasound, servo)
+                LOG.info(f"Distance: {ultrasound.distance_cm}")
+                # take_decision(motors, ultrasound, servo)
+                time.sleep(100)
         except Exception as e:
             LOG.error(f"Stopping program: {e}")
             break

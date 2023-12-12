@@ -7,7 +7,6 @@ from robcontrol.libs.parser import get_parser
 # from robcontrol.drivers.motors import Motors
 # from robcontrol.drivers.servo import ServoMotor
 from robcontrol.drivers.ultrasound import Ultrasound
-from robcontrol.config import DEFAULT_CONF
 
 LOG = logging.getLogger(__name__)
 
