@@ -2,102 +2,110 @@ import time
 import logging
 import caninos_sdk as k9
 
-from robcontrol.config import MotorConfig, MotorChannel
-
+from robcontrol.drivers.shiftr_74HC595 import ShiftRegister
 
 LOG = logging.getLogger(__name__)
 
 class Motors:
-    def __init__(self, conf: MotorConfig) -> None:
+    EN1 = 38    # 0, 1
+    EN2 = 40
+    EN10 = 35   # 4, 5
+    EN20 =  37  # 7, 6
+
+    def __init__(self) -> None:
         LOG.info(f"Init Motors driver")
+        self.shiftr = ShiftRegister()
         self.labrador = k9.Labrador()
 
-        # Right motor config
-        self.right_motor = conf.m_right
-        self._set_pins(self.right_motor)
-        self._set_pwm(self.right_motor.ENA, 0)
-        
-        # Left motor config
-        self.left_motor = conf.m_left
-        self._set_pins(self.left_motor)
-        self._set_pwm(self.left_motor.ENA, 0)
-    
-    def _set_pins(self, chn: MotorChannel) -> None:
-        try:
-            self.labrador.pin(chn.IN0).enable_gpio(
-                k9.Pin.Direction.OUTPUT
-            )
-            self.labrador.pin(chn.IN1).enable_gpio(
-                k9.Pin.Direction.OUTPUT
-            )
-        except Exception as e:
-            LOG.error(f"Some error occurred: {e}")
-
-    def _set_pwm(
-        self,
-        chn: MotorChannel,
-        duty_cycle: float
-    ) -> None:
-        LOG.info(f"Configure PWM to {duty_cycle * 100}%")
-        self.labrador.pin(chn.ENA).enable_pwm(
+        # Configure PWM motor control
+        self.labrador.pin37.enable_pwm(
             freq=100,
-            duty_cycle=duty_cycle
+            duty_cycle=100,
+            alias="pwm_left"
+        )
+        self.labrador.pin35.enable_pwm(
+            freq=100,
+            duty_cycle=100,
+            alias="pwm_right"
         )
 
     def forward(self, duty_cycle: float) -> None:
         LOG.info(f"Forward...")
         # Set rotation way for right motor
-        self.labrador.pin(self.conf.right_motor.IN0).low()
-        self.labrador.pin(self.conf.right_motor.IN1).high()
+        self.shiftr.setOutput(4, 0)
+        self.shiftr.setOutput(5, 1)
         # Set rotation way for left motor
-        self.labrador.pin(self.conf.left_motor.IN0).low()
-        self.labrador.pin(self.conf.left_motor.IN1).high()
+        self.shiftr.setOutput(7, 0)
+        self.shiftr.setOutput(6, 1)
         # Set speed motor
-        self._set_pwm(self.right_motor, duty_cycle)
-        self._set_pwm(self.left_motor, duty_cycle)
-        self.labrador.pin(self.right_motor.ENA).pwm.start()
-        self.labrador.pin(self.left_motor.ENA).pwm.start()
+        self.labrador.pwm_left.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_right.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_left.pwm.start()
+        self.labrador.pwm_right.pwm.start()
+        self.shiftr.latch()
 
     def backward(self, duty_cycle: float) -> None:
         LOG.info(f"Backward...")
         # Set rotation way for right motor
-        self.labrador.pin(self.conf.right_motor.IN0).high()
-        self.labrador.pin(self.conf.right_motor.IN1).low()
+        self.shiftr.setOutput(4, 1)
+        self.shiftr.setOutput(5, 0)
         # Set rotation way for left motor
-        self.labrador.pin(self.conf.left_motor.IN0).high()
-        self.labrador.pin(self.conf.left_motor.IN1).low()
+        self.shiftr.setOutput(7, 1)
+        self.shiftr.setOutput(6, 0)
         # Set speed motor
-        self._set_pwm(self.right_motor, duty_cycle)
-        self._set_pwm(self.left_motor, duty_cycle)
-        self.labrador.pin(self.right_motor.ENA).pwm.start()
-        self.labrador.pin(self.left_motor.ENA).pwm.start()
+        self.labrador.pwm_left.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_right.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_left.pwm.start()
+        self.labrador.pwm_right.pwm.start()
+        self.shiftr.latch()
     
     def to_right(self, duty_cycle: float) -> None:
         # Stop right motor
-        self.labrador.pin(self.conf.right_motor.IN0).high()
-        self.labrador.pin(self.conf.right_motor.IN1).high()
+        self.shiftr.setOutput(4, 1)
+        self.shiftr.setOutput(5, 1)
         # Move left motor
-        self.labrador.pin(self.conf.left_motor.IN0).low()
-        self.labrador.pin(self.conf.left_motor.IN1).high()
-        self._set_pwm(self.left_motor, duty_cycle)
-        self.labrador.pin(self.left_motor.ENA).pwm.start()
+        self.shiftr.setOutput(7, 0)
+        self.shiftr.setOutput(6, 1)
+        self.labrador.pwm_left.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_right.pwm.start()
+        self.shiftr.latch()
 
     def to_left(self, duty_cycle: float) -> None:
         # Stop left motor
-        self.labrador.pin(self.conf.left_motor.IN0).high()
-        self.labrador.pin(self.conf.left_motor.IN1).high()
+        self.shiftr.setOutput(4, 1)
+        self.shiftr.setOutput(5, 1)
         # Move right motor
-        self.labrador.pin(self.conf.right_motor.IN0).low()
-        self.labrador.pin(self.conf.right_motor.IN1).high()
-        self._set_pwm(self.right_motor, duty_cycle)
-        self.labrador.pin(self.right_motor.ENA).pwm.start()
+        self.shiftr.setOutput(7, 0)
+        self.shiftr.setOutput(6, 1)
+        self.labrador.pwm_right.enable_pwm(
+            freq=100,
+            duty_cycle=duty_cycle
+        )
+        self.labrador.pwm_right.pwm.start()
+        self.shiftr.latch()
     
     def stop(self):
         LOG.info(f"Stop motors!")
         # Stop right motor 
-        self.labrador.pin(self.conf.right_motor.IN0).high()
-        self.labrador.pin(self.conf.right_motor.IN1).high()
+        self.shiftr.setOutput(4, 1)
+        self.shiftr.setOutput(5, 1)
         # Stop left motor
-        self.labrador.pin(self.conf.left_motor.IN0).high()
-        self.labrador.pin(self.conf.left_motor.IN1).high()
+        self.shiftr.setOutput(7, 1)
+        self.shiftr.setOutput(6, 1)
+        self.shiftr.latch()
 
