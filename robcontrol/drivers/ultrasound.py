@@ -4,7 +4,6 @@ import logging
 import threading
 import caninos_sdk as k9
 
-
 LOG = logging.getLogger(__name__)
 
 class Ultrasound(threading.Thread):
@@ -64,7 +63,7 @@ class Ultrasound(threading.Thread):
         time.sleep(5)
         try:
             while True:
-                distance = measure_distance()
+                distance = self.measure_distance()
                 self.distance_cm = round(distance, 2)
                 self.distance_in = round(distance / 2.54, 2)
         except KeyboardInterrupt or Exception as e:
