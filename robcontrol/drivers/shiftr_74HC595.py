@@ -1,42 +1,50 @@
-# import Adafruit_BBIO.GPIO as GPIO
 import logging
-import caninos_sdk as k9
+# import caninos_sdk as k9
 import time
+import os
 
 LOG = logging.getLogger(__name__)
-SER = 7
-# _OE = 9
-RCLK = 11
-SRCLK = 13
-_SRCLK = 15
+SER = 7 # Data 
+_OE = 9
+RCLK = 11 # Latch/storage
+SRCLK = 13  # Shift register
+_SRCLK = 15 # GPIOC4
 
 class ShiftRegister:
     register_type = '74HC595'
-    
-
     """
     data_pin => pin 14 on the 74HC595
     latch_pin => pin 12 on the 74HC595
-    clock_pin => pin 11 on the 74HC595
+    shift_pin => pin 11 on the 74HC595
     """
     def __init__(self):
-        self.labrador = k9.Labrador()
-        self.data_pin = SER
-        self.latch_pin = RCLK
-        self.clock_pin = SRCLK
+        LOG.info(f"Init ShiftRegister driver")
+        # self.labrador = k9.Labrador()
+        self.data_pin = 50
+        self.latch_pin = 64
+        self.shift_pin = 65
+        self.reset_pin = 68
 
-        self.labrador.pin7.enable_gpio(
-            k9.Pin.Direction.OUTPUT,
-            alias="data_pin"
-        )
-        self.labrador.pin7.enable_gpio(
-            k9.Pin.Direction.OUTPUT,
-            alias="latch_pin"
-        )
-        self.labrador.pin7.enable_gpio(
-            k9.Pin.Direction.OUTPUT,
-            alias="clock_pin"
-        )
+        LOG.debug(f"Set data_pin {SER}")
+        # pin7: GPIOB18
+        os.system(f"sudo sh -c 'echo {self.data_pin} > /sys/class/gpio/export'")
+        os.system(f"sudo sh -c 'echo out > /sys/class/gpio/gpio{self.data_pin}/direction'")
+
+        LOG.debug(f"Set latch_pin {RCLK}")
+        # pin11: GPIOC0
+        os.system(f"sudo sh -c 'echo {self.latch_pin} > /sys/class/gpio/export'")
+        os.system(f"sudo sh -c 'echo out > /sys/class/gpio/gpio{self.latch_pin}/direction'")
+        
+        LOG.debug(f"Set shift_pin {SRCLK}")
+        # pin13: GPIOC1
+        os.system(f"sudo sh -c 'echo {self.shift_pin} > /sys/class/gpio/export'")
+        os.system(f"sudo sh -c 'echo out > /sys/class/gpio/gpio{self.shift_pin}/direction'")
+
+        LOG.debug(f"Set shift_pin {_SRCLK}")
+        # pin13: GPIOC1
+        os.system(f"sudo sh -c 'echo {self.reset_pin} > /sys/class/gpio/export'")
+        os.system(f"sudo sh -c 'echo out > /sys/class/gpio/gpio{self.reset_pin}/direction'")
+        os.system(f"sudo sh -c 'echo 0 > /sys/class/gpio/gpio{self.reset_pin}/value'")
 
         self.outputs = [0] * 8
 
@@ -66,15 +74,19 @@ class ShiftRegister:
         self.outputs = outputs
 
     def latch(self):
-        self.labrador.latch_pin.low()
+        # self.labrador.latch_pin.low()
+        os.system(f"sudo sh -c 'echo 1 > /sys/class/gpio/gpio{self.shift_pin}/value'")
+        os.system(f"sudo sh -c 'echo 0 > /sys/class/gpio/gpio{self.latch_pin}/value'")
+        os.system(f"sudo sh -c 'echo 1 > /sys/class/gpio/gpio{self.shift_pin}/value'")
 
         for i in range(7, -1, -1):
-            self.labrador.latch_pin.low()
-            self.labrador.clock_pin.high()
-            if self.outputs[i] == 0:
-                self.labrador.data_pin.low()
-            else:
-                self.labrador.data_pin.high()
-            time.sleep(1)
+            # os.system(f"sudo sh -c 'echo 0 > /sys/class/gpio/gpio{self.latch_pin}/value'")
+            os.system(f"sudo sh -c 'echo 0 > /sys/class/gpio/gpio{self.shift_pin}/value'")
+            os.system(f"sudo sh -c 'echo {self.outputs[i]} > /sys/class/gpio/gpio{self.data_pin}/value'")
+            os.system(f"sudo sh -c 'echo 1 > /sys/class/gpio/gpio{self.shift_pin}/value'")
+            # time.sleep(1)
 
-        self.labrador.latch_pin.high()
+        # self.labrador.latch_pin.high()
+        os.system(f"sudo sh -c 'echo 0 > /sys/class/gpio/gpio{self.shift_pin}/value'")
+        os.system(f"sudo sh -c 'echo 1 > /sys/class/gpio/gpio{self.latch_pin}/value'")
+        os.system(f"sudo sh -c 'echo 1 > /sys/class/gpio/gpio{self.shift_pin}/value'")
