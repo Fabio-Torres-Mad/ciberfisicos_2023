@@ -7,5 +7,5 @@ if [ -z "$pid" ]; then
     echo $(date)
     echo "Starting Control Robot"
     cd /home/caninos/projeto
-    screen -dmS controlRobot -L -Logfile /home/caninos/logs/rebot.log python3 -m robcontrol -s --log-level INFO
+    screen -dmS controlRobot -L -Logfile /home/caninos/logs/robcontrol.log python3 -m robcontrol -s --log-level INFO
 fi
